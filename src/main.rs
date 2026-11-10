@@ -1,11 +1,11 @@
 #![recursion_limit = "512"]
-#![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
 
-pub(crate) const APP_ID: &str = "com.s1dashu.quietmd";
+pub(crate) const APP_ID: &str = "com.tulburg.quill";
 
 mod app;
 mod shared_store;
 mod quick_note;
+mod menu_bar;
 mod assets;
 mod changelog;
 mod guides;
@@ -26,14 +26,11 @@ mod docmenu;
 mod editor;
 mod highlight;
 mod home;
+mod new_entry;
 mod html;
 mod input;
 mod logging;
 mod modes;
-#[cfg(target_os = "macos")]
-mod native_header;
-#[cfg(not(target_os = "macos"))]
-#[path = "native_header_fallback.rs"]
 mod native_header;
 mod printing;
 mod search;
@@ -57,7 +54,6 @@ mod transfer;
 mod trash;
 mod tree;
 mod ui;
-mod update;
 
 use fdl_core::{docxml, lang, markdown, model, palette, paste, store, time};
 
@@ -81,7 +77,7 @@ fn set_app_icon() {
 }
 
 /// The main window, centred at the remembered size.
-fn open_main_window(scripted: bool, cx: &mut App) {
+pub(crate) fn open_main_window(scripted: bool, cx: &mut App) {
     // Scripted dev runs must not steal keyboard focus from whatever the
     // user is typing into.
     let bounds = Bounds::centered(None, quick_note::main_window_size(cx), cx);
@@ -90,10 +86,9 @@ fn open_main_window(scripted: bool, cx: &mut App) {
             window_bounds: Some(WindowBounds::Windowed(bounds)),
             window_background: crate::theme::window_background(),
             app_id: Some(crate::APP_ID.into()),
-            window_decorations: if cfg!(target_os = "linux") { Some(WindowDecorations::Client) } else { None },
             titlebar: Some(TitlebarOptions {
-                title: Some("Quiet.md".into()),
-                appears_transparent: cfg!(any(target_os = "macos", target_os = "windows")),
+                title: Some("Quill".into()),
+                appears_transparent: true,
                 traffic_light_position: Some(point(px(20.), px(app::HEADER_H / 2. - 7.))),
             }),
             window_min_size: Some(size(px(480.), px(480.))),
@@ -102,10 +97,11 @@ fn open_main_window(scripted: bool, cx: &mut App) {
         },
         |window, cx| {
             devtools::start(window, cx);
-            cx.new(|cx| app::Workspace::new(window, cx))
+            cx.new(|cx| { let mut w = app::Workspace::new(window, cx); if menu_bar::scripted_bar() { menu_bar::configure(&mut w); } w })
         },
     )
     .expect("open window");
+    menu_bar::sync_policy(cx);
 }
 
 fn main() {
@@ -126,9 +122,10 @@ fn main() {
     let incoming = local_files::Incoming::from_args();
     let urls = incoming.clone();
     app.on_open_urls(move |u| urls.push_urls(u));
-    // macOS keeps running after ⌘W closes the last window (quick notes stay
-    // available); clicking the Dock icon then brings the main window back.
-    app.on_reopen(|cx| if cx.windows().is_empty() { open_main_window(false, cx); });
+    // macOS keeps running after ⌘W closes the last window (quick notes and
+    // the menu bar stay available); clicking the Dock icon or opening Quill
+    // from the Finder again brings a standard window back (S-10).
+    app.on_reopen(menu_bar::open_window);
     app.run(move |cx: &mut App| {
         #[cfg(target_os = "macos")]
         set_app_icon();
@@ -150,18 +147,22 @@ fn main() {
         }
         let quick_enabled = !scripted;
         if quick_enabled { quick_note::install(cx); }
+        // The status item is always there; a login launch shows only it (S-10).
+        if !scripted { menu_bar::install(cx); }
+        let at_login = !scripted && menu_bar::launched_at_login();
         app::set_menus(cx);
-        update::init(cx);
-        open_main_window(scripted, cx);
+        if !at_login { open_main_window(scripted, cx); }
         incoming.deliver(cx);
         cx.on_window_closed(move |cx| {
             if (!quick_enabled || !cfg!(target_os = "macos")) && cx.windows().is_empty() {
                 cx.quit();
             }
+            menu_bar::sync_policy(cx);
         })
         .detach();
-        if !scripted {
+        if !scripted && !at_login {
             cx.activate(true);
         }
+        menu_bar::sync_policy(cx);
     });
 }

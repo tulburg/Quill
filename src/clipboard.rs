@@ -27,8 +27,3 @@ pub fn clipboard_html() -> Option<String> {
         (!p.is_null()).then(|| std::ffi::CStr::from_ptr(p).to_string_lossy().into_owned())
     }
 }
-
-#[cfg(not(target_os = "macos"))]
-pub fn clipboard_html() -> Option<String> {
-    None
-}

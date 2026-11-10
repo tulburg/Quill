@@ -36,7 +36,7 @@ bench "wheel 900 500 40" x100: step [p50 0.01 p95 0.02 max 0.02] frame [p50 2.08
 
 ## 复现
 
-测试只使用临时文档库，不会碰 `~/Documents/Quiet.md`。
+测试只使用临时文档库，不会碰 `~/Documents/Quill`。
 
 ```sh
 cargo build --release --locked --features devtools

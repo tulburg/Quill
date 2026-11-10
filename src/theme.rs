@@ -17,22 +17,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 // ---- window glass
 
-/// Whether windows sit on blurred glass. Windows 10 and 11 21H2 drag acrylic
-/// windows with a lag (GitHub #32): there the window is opaque.
-pub fn glass() -> bool {
-    #[cfg(target_os = "windows")] {
-        static GLASS: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
-        *GLASS.get_or_init(|| windows_build().is_some_and(|b| b >= 22621))
-    }
-    #[cfg(target_os = "linux")] { false }
-    #[cfg(not(any(target_os = "windows", target_os = "linux")))] { true }
-}
-
-#[cfg(target_os = "windows")]
-fn windows_build() -> Option<u32> {
-    let key = windows_registry::LOCAL_MACHINE.open(r"SOFTWARE\Microsoft\Windows NT\CurrentVersion").ok()?;
-    key.get_string("CurrentBuildNumber").ok()?.trim().parse().ok()
-}
+/// Whether windows sit on blurred glass (always, on macOS).
+pub fn glass() -> bool { true }
 
 pub fn window_background() -> WindowBackgroundAppearance {
     if glass() { WindowBackgroundAppearance::Blurred } else { WindowBackgroundAppearance::Opaque }
@@ -298,18 +284,10 @@ pub fn shadow_button() -> Vec<BoxShadow> {
     vec![shadow(0.05, 1., 1.5, 0.)]
 }
 
-#[cfg(any(target_os = "macos", target_os = "windows"))]
 pub const UI_FONT: &str = ".SystemUIFont";
-#[cfg(not(any(target_os = "macos", target_os = "windows")))]
-pub const UI_FONT: &str = "Noto Sans";
-pub const NUMERAL_FONT: &str = if cfg!(any(target_os = "macos", target_os = "windows")) { "Helvetica Neue" } else { UI_FONT };
+pub const NUMERAL_FONT: &str = "Helvetica Neue";
 /// Platform monospace font.
-#[cfg(target_os = "macos")]
 pub const MONO_FONT: &str = ".AppleSystemUIFontMonospaced";
-#[cfg(target_os = "windows")]
-pub const MONO_FONT: &str = "Consolas";
-#[cfg(not(any(target_os = "macos", target_os = "windows")))]
-pub const MONO_FONT: &str = "Noto Sans Mono";
 
 pub struct Theme;
 
@@ -377,7 +355,7 @@ impl Theme {
     pub fn danger_cell() -> Hsla { c(craft::R50) }
     pub fn danger() -> Hsla { c(craft::R500) }
 
-    // ---- Quiet.md shell
+    // ---- Quill shell
     /// A light gray tint separates the sidebar from the white page while keeping wallpaper colors quiet.
     /// The document pane paints its own opaque white surface.
     pub fn window() -> Hsla { if crate::native_header::supported() { ca(craft::WINDOW, 0.) } else if crate::theme::glass() { ca(craft::WINDOW, 0.84) } else { ca(craft::WINDOW, 1.) } }
@@ -550,6 +528,12 @@ pub fn heading_metrics(level: u8) -> BlockMetrics {
 
 /// Body text: 15pt, 1.25 × natural line height ≈ 22pt; single-line
 /// paragraphs repeat every 35pt, so 13pt between blocks.
+/// Quill's 新建笔记 field (S-8): resting height, and how long it takes to
+/// grow into the editor (or, with 减弱动态效果, to cross-fade).
+pub const ENTRY_FIELD_H: f32 = 38.0;
+pub const ENTRY_SLIDE_MS: u64 = 240;
+pub const ENTRY_FADE_MS: u64 = 120;
+
 pub const BODY_SIZE: f32 = 15.0;
 pub const BODY_LINE: f32 = 22.0;
 pub const BLOCK_GAP: f32 = 13.0;
@@ -559,7 +543,7 @@ pub fn heading_weight(level: u8) -> gpui::FontWeight {
     if level <= 2 { gpui::FontWeight::BOLD } else { gpui::FontWeight::SEMIBOLD }
 }
 
-/// Page title: Quiet.md uses 34 / 55.25 Bold, larger than the 21pt
+/// Page title: Quill uses 34 / 55.25 Bold, larger than the 21pt
 /// reference `.pageTitle`, to match preview typography; the larger title is
 /// an intentional deviation, not a measurement.
 pub const TITLE: BlockMetrics = BlockMetrics { size: 34.0, line_height: 55.25, mt: 0.0, mb: 0.0 };

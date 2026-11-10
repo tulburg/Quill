@@ -767,9 +767,9 @@ Windows 安装包随附未修改的 Microsoft Visual C++ Runtime `vcruntime140.d
 | 素材 | 许可 |
 |---|---|
 | `assets/editor-icons/`（编辑器与文档里的 195 个图标） | 其中 49 个直接取自 Lucide（ISC，见同目录 `LICENSE-lucide`），其余按同一 24px / 2px 描边规格绘制 |
-| `assets/icons/`（界面外壳的 67 个图标，含一个在 Nucleo 图标上加了 MD 字样的 `doc-md.svg`） | Nucleo UI Outline / Fill 18。本项目持有 Nucleo 商业授权，按授权条款「公开源码项目中最多 100 个图标」使用（<https://nucleoapp.com/license>）。**这些图标不在 MIT 范围内**：fork 时请自行确认授权，或换成自己的图标；不得把它们抽出来做成图标库或图标包。 |
-| `assets/icons/folder.svg`、`assets/icons/disclosure.svg`、`assets/icons/import.svg` | 本项目绘制，MIT；不属于上述 67 个 Nucleo 图标 |
-| `assets/branding/app-icon.png` | 本项目自有 |
+| `assets/icons/`（界面外壳的 66 个图标） | Lucide（ISC，见同目录 `LICENSE-lucide`），lucide-static v1.70.0；文件首行注明对应的 Lucide 图标名 |
+| `assets/icons/folder.svg`、`disclosure.svg`、`import.svg`、`circle-filled.svg`、`tree-triangle.svg`、`info-mark.svg` | 本项目绘制，MIT |
+| `assets/branding/`（Quill 应用图标与菜单栏图标，含 SVG 源文件） | 本项目绘制，MIT |
 
 ## 封面与插画
 

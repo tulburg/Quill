@@ -700,6 +700,12 @@ impl Workspace {
         } else {
             self.render_home_list(&entries, false, cx)
         };
+        let content = if self.entry.menu_bar {
+            let rest = div().flex_1().min_h_0().flex().flex_col().child(toolbar).child(body).into_any_element();
+            self.render_entry_home(rest, cx)
+        } else {
+            div().flex_1().min_h_0().flex().flex_col().child(toolbar).child(body).into_any_element()
+        };
         div()
             .flex_1()
             .min_w_0()
@@ -707,8 +713,7 @@ impl Workspace {
             .flex()
             .flex_col()
             .child(header)
-            .child(toolbar)
-            .child(body)
+            .child(content)
             .into_any_element()
     }
 

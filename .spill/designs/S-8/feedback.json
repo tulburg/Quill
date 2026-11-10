@@ -1,0 +1,21 @@
+{
+  "next": 1,
+  "nextNote": 2,
+  "pins": [],
+  "notes": [
+    {
+      "id": "c-1",
+      "variant": "",
+      "text": "I actually want the exact main window instead of a custom UI. As it is",
+      "at": "2026-11-09T15:21:15.890Z",
+      "replies": [
+        {
+          "by": "claude",
+          "text": "Redrawn: the panel is now the exact main window as is, with only the New note field added at the top of Home. Spec updated to match.",
+          "at": "2026-11-09T15:22:32.284Z"
+        }
+      ]
+    }
+  ],
+  "reviews": {}
+}

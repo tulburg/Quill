@@ -22,7 +22,7 @@ use std::time::{Duration, Instant};
 const SAVE_DELAY: Duration = Duration::from_millis(500);
 const SAVE_MAX_DELAY: Duration = Duration::from_secs(2);
 
-actions!(workspace, [NewDoc, OpenFile, ImportDoc, ImportFolder, ToggleSidebar, FocusSearch, FindInDoc, ReplaceInDoc, OpenSettings, OpenAbout, CheckForUpdates, GoHome, CloseWindow, Quit,
+actions!(workspace, [NewDoc, OpenFile, ImportDoc, ImportFolder, ToggleSidebar, FocusSearch, FindInDoc, ReplaceInDoc, OpenSettings, OpenAbout, GoHome, CloseWindow, Quit,
     HideApp, HideOthers, ShowAll, Minimize, Zoom, ToggleFullScreen]);
 
 /// The menu bar, in the interface language.
@@ -30,20 +30,19 @@ pub fn set_menus(cx: &mut App) {
     use crate::settings::tr;
     cx.set_menus(vec![
         Menu {
-            name: "Quiet.md".into(),
+            name: "Quill".into(),
             items: vec![
-                MenuItem::action(tr("关于 Quiet.md", "About Quiet.md"), OpenAbout),
-                MenuItem::action(tr("检查更新…", "Check for Updates…"), CheckForUpdates),
+                MenuItem::action(tr("关于 Quill", "About Quill"), OpenAbout),
                 MenuItem::separator(),
                 MenuItem::action(tr("设置…", "Settings…"), OpenSettings),
                 MenuItem::separator(),
                 MenuItem::os_submenu(tr("服务", "Services"), SystemMenuType::Services),
                 MenuItem::separator(),
-                MenuItem::action(tr("隐藏 Quiet.md", "Hide Quiet.md"), HideApp),
+                MenuItem::action(tr("隐藏 Quill", "Hide Quill"), HideApp),
                 MenuItem::action(tr("隐藏其他", "Hide Others"), HideOthers),
                 MenuItem::action(tr("全部显示", "Show All"), ShowAll),
                 MenuItem::separator(),
-                MenuItem::action(tr("退出 Quiet.md", "Quit Quiet.md"), Quit),
+                MenuItem::action(tr("退出 Quill", "Quit Quill"), Quit),
             ],
         },
         Menu {
@@ -107,19 +106,13 @@ pub fn bind_keys(cx: &mut App) {
         KeyBinding::new("cmd-q", Quit, None),
     ]);
     // macOS app and window keys. ⌥⌘H (隐藏其他) stays with the editor's
-    // 应用上次的颜色, the Feishu shortcut; 隐藏其他 is in the menu. On Windows
-    // the system handles these (Win+↓, Alt+F4), and F11 is full screen.
+    // 应用上次的颜色, the Feishu shortcut; 隐藏其他 is in the menu.
     #[cfg(target_os = "macos")]
     cx.bind_keys([
         KeyBinding::new("cmd-h", HideApp, None),
         KeyBinding::new("cmd-m", Minimize, None),
         KeyBinding::new("ctrl-cmd-f", ToggleFullScreen, None),
     ]);
-    // Windows: F11 for full screen, and Ctrl+H for 查找和替换 as in Office
-    // and Notepad (written cmd-h: `shortcuts::pc_binding` maps cmd to
-    // ctrl and drops a literal ctrl-h, Cocoa's backspace).
-    #[cfg(not(target_os = "macos"))]
-    cx.bind_keys([KeyBinding::new("f11", ToggleFullScreen, None), KeyBinding::new("cmd-h", ReplaceInDoc, None)]);
     cx.on_action(|_: &HideApp, cx| cx.hide());
     cx.on_action(|_: &HideOthers, cx| cx.hide_other_apps());
     cx.on_action(|_: &ShowAll, cx| cx.unhide_other_apps());
@@ -128,6 +121,7 @@ pub fn bind_keys(cx: &mut App) {
             // Key dispatch already borrows this window; close after it returns.
             cx.defer(move |cx| {
                 if let Err(e) = handle.update(cx, |ws, window, cx| {
+                    if crate::menu_bar::hide_main(window, cx) { return; }
                     crate::quick_note::persist(cx);
                     if ws.save_before(cx, |_, window, _| window.remove_window()) { window.remove_window(); }
                 }) { eprintln!("无法关闭笔记窗口：{e}"); }
@@ -301,6 +295,8 @@ pub struct Workspace {
     /// Held back by a failed save: runs after 重试 succeeds or 放弃修改.
     pub(crate) after_save: Option<AfterSave>,
     pub(crate) editor_sub: Option<Subscription>,
+    /// Quill: the 新建笔记 field and the note it started (new_entry.rs).
+    pub(crate) entry: crate::new_entry::NewEntry,
     _subs: Vec<Subscription>,
 }
 
@@ -345,12 +341,13 @@ impl Workspace {
         });
         let subs = vec![
             cx.subscribe(&settings_filter, |_, _, ev: &TextFieldEvent, cx| if matches!(ev, TextFieldEvent::Changed) { cx.notify(); }),
-            cx.observe_window_bounds(window, |this, window, cx| crate::quick_note::remember(window, this.quick_note, cx)),
+            // The menu bar window's fixed size is not the standard window's (S-10).
+            cx.observe_window_bounds(window, |this, window, cx| if !this.entry.menu_bar { crate::quick_note::remember(window, this.quick_note, cx) }),
             // The system switched between light and dark (or the app's own look changed).
             cx.observe_window_appearance(window, |this, _, cx| if crate::settings::sync_dark(cx) { crate::settings::refresh_all(this, cx); }),
             cx.observe_window_activation(window, |this, window, cx| {
-                if window.is_window_active() { if let Some(id) = &this.current { crate::quick_note::used(id, cx); } this.entries = this.store.list(); this.sort(); crate::update::check_if_stale(cx); cx.notify(); }
-                else { this.cancel_home_drag(cx); this.end_folder_drag(true, cx); this.cancel_shortcut_recording(cx); this.flush(cx); }
+                if window.is_window_active() { if let Some(id) = &this.current { crate::quick_note::used(id, cx); } this.entries = this.store.list(); this.sort(); cx.notify(); }
+                else { this.cancel_home_drag(cx); this.end_folder_drag(true, cx); this.cancel_shortcut_recording(cx); this.flush(cx); crate::menu_bar::deactivated(window, cx); }
             }),
             cx.subscribe_in(&search, window, |this, _, ev: &TextFieldEvent, window, cx| {
                 match ev {
@@ -461,6 +458,7 @@ impl Workspace {
             unsaved: false,
             after_save: None,
             editor_sub: None,
+            entry: crate::new_entry::NewEntry::default(),
             _subs: subs,
         };
         ws.sort();
@@ -514,14 +512,14 @@ impl Workspace {
             return false;
         }
         let shared = !self.document_peers(id, window, cx).is_empty();
-        let doc = match self.store.load_for_edit(id, shared) {
+        let doc = if self.entry.is_pending(id) { crate::model::Document::default() } else { match self.store.load_for_edit(id, shared) {
             Ok(d) => d,
             Err(e) => {
                 self.show_toast_kind(ToastKind::Error, &crate::localized_format!("无法打开文档：{}", "Could not open document: {}", crate::settings::diagnostic(&e.to_string())), cx);
                 cx.notify();
                 return false;
             }
-        };
+        } };
         let meta = self.entries.iter().find(|e| e.id == id).map(|e| e.meta.clone());
         let modified = meta.as_ref().map_or_else(crate::time::now, |m| m.modified);
         let width = meta.as_ref().map(|m| m.width).unwrap_or_default();
@@ -595,6 +593,7 @@ impl Workspace {
             && self.document_peers(previous, window, cx).is_empty() { self.store.forget_loaded(previous); }
         self.editor = Some(editor);
         self.current = Some(id.to_string());
+        if !self.entry.is_pending(id) { self.entry.pending = None; }
         crate::quick_note::used(id, cx);
         self.reveal_in_tree(id);
         self.sync_sub_pages(cx);
@@ -935,9 +934,17 @@ impl Workspace {
             return true;
         };
         let doc = &ed.read(cx).core.doc;
+        // A note from the 新建笔记 field reaches the disk only once it has content.
+        if self.entry.is_pending(&id) && doc.is_blank() {
+            self.unsaved = false;
+            self.dirty_since = None;
+            self.status = SaveStatus::Idle;
+            return true;
+        }
         let (title, icon, body, reminders, links) = (doc.title.text.clone(), doc.icon.clone(), doc.plain_text(), doc.reminders(), doc.doc_links());
         match self.store.save(&id, doc) {
             Ok(meta) => {
+                self.entry_saved(&id);
                 if let Some(e) = self.entries.iter_mut().find(|e| e.id == id) {
                     e.title = title;
                     e.icon = icon;
@@ -1103,6 +1110,9 @@ impl Workspace {
         cx.notify();
     }
 
+    /// Room for the traffic lights; the menu bar window has none (S-10).
+    pub(crate) fn lights_w(&self) -> f32 { if self.entry.menu_bar { 16. } else { theme::TRAFFIC_LIGHTS_W } }
+
     /// 主页's search box, centred on the pane but never over what sits on
     /// either side of it: the title (and, with the sidebar hidden, the
     /// traffic lights and 展开侧栏) on the left, + on the right. Below a
@@ -1113,7 +1123,7 @@ impl Workspace {
         let title_w = f32::from(window.text_system().shape_line(title.clone().into(), px(17.), &[window.text_style().highlight(HighlightStyle { font_weight: Some(FontWeight::SEMIBOLD), ..Default::default() }).to_run(title.len())], None).width);
         // page_header's left inset (26 with the sidebar, else the traffic
         // lights plus the 4 + 28 + 12 of 展开侧栏), then 16 clear of the title.
-        let left = if self.sidebar_open { 26. } else { theme::TRAFFIC_LIGHTS_W + 44. + if cfg!(target_os = "windows") { 32. } else { 0. } } + title_w + 16.;
+        let left = if self.sidebar_open { 26. } else { self.lights_w() + 44. } + title_w + 16.;
         // + is 32 wide with an 8pt inset; 16 clear of it.
         let right = HEADER_ACTIONS_H + crate::ui::header_right_inset() + 16.;
         let half = (main / 2. - left).min(main / 2. - right);
@@ -1207,7 +1217,7 @@ impl Workspace {
             .items_center()
             .pr(px(crate::ui::header_right_inset()))
             // Clear of the traffic lights, which sit over the note when the sidebar is closed.
-            .pl(if self.sidebar_open { px(18.) } else { px(theme::TRAFFIC_LIGHTS_W) })
+            .pl(if self.sidebar_open { px(18.) } else { px(self.lights_w()) })
             .title_bar()
             .when(!self.sidebar_open, |d| {
                 d.child(
@@ -1318,7 +1328,7 @@ impl Render for Workspace {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         // Clicks no longer take focus from the editor (see the root's mouse
         // down), so leaving the document hands it back to the window's keys.
-        if self.view != View::Doc && self.editor.as_ref().is_some_and(|e| e.read(cx).focus.is_focused(window)) { window.focus(&self.focus); }
+        if self.view != View::Doc && !self.entry.animating() && self.editor.as_ref().is_some_and(|e| e.read(cx).focus.is_focused(window)) { window.focus(&self.focus); }
         crate::editor::image::frame_drawn(window);
         self.native_sidebar.sync(if self.sidebar_open { self.sidebar_w(window) } else { 0. }, window);
         let sidebar = if self.sidebar_open { Some(if matches!(self.view, View::Settings | View::Trash) { self.render_settings_sidebar(window, cx) } else { self.render_sidebar(window, cx) }) } else { None };
@@ -1387,6 +1397,8 @@ impl Render for Workspace {
             .key_context("Workspace")
             .capture_action(cx.listener(|w, _: &crate::editor::keymap::Undo, window, cx| w.capture_file_history(false, window, cx)))
             .capture_action(cx.listener(|w, _: &crate::editor::keymap::Redo, window, cx| w.capture_file_history(true, window, cx)))
+            // Esc on a blank note from the 新建笔记 field shrinks it back into the field (S-8).
+            .capture_action(cx.listener(|w, _: &crate::editor::keymap::Escape, window, cx| { if w.leave_new_entry(window, cx) { cx.stop_propagation(); } }))
             .track_focus(&self.focus)
             // A click on what takes no input (title bar, page margins, the
             // sidebar's blank space) leaves the caret in the document, also
@@ -1406,6 +1418,8 @@ impl Render for Workspace {
             .on_mouse_move(cx.listener(|w, ev: &MouseMoveEvent, window, cx| w.track_sidebar_press(ev, window, cx)))
             .on_mouse_up(MouseButton::Left, cx.listener(|w, _, window, cx| w.finish_sidebar_click(window, cx)))
             .on_action(cx.listener(|w, _: &CloseWindow, window, cx| {
+                // In the menu bar ⌘W hides the main window instead of closing it.
+                if crate::menu_bar::hide_main(window, cx) { return; }
                 crate::quick_note::persist(cx);
                 if w.save_before(cx, |_, window, _| window.remove_window()) { window.remove_window(); }
             }))
@@ -1414,7 +1428,6 @@ impl Render for Workspace {
             .on_action(|_: &ToggleFullScreen, window, _| window.toggle_fullscreen())
             .on_action(cx.listener(|w, _: &OpenSettings, _, cx| w.show_view(View::Settings, cx)))
             .on_action(cx.listener(|w, _: &OpenAbout, _, cx| w.open_settings(crate::settings::Page::About, cx)))
-            .on_action(cx.listener(|w, _: &CheckForUpdates, _, cx| { w.open_settings(crate::settings::Page::About, cx); crate::update::check(true, cx); }))
             .on_action(cx.listener(|w, _: &GoHome, _, cx| w.show_view(View::Home, cx)))
             .on_action(cx.listener(|w, _: &NewDoc, window, cx| w.new_doc(window, cx)))
             .on_action(cx.listener(|w, _: &ImportDoc, window, cx| w.open_import(window, cx)))
@@ -1454,6 +1467,9 @@ impl Render for Workspace {
                     w.doc_sub = None;
                     cx.stop_propagation();
                     cx.notify();
+                } else if ev.keystroke.key == "escape" && crate::menu_bar::hide_main(window, cx) {
+                    // In the menu bar, Esc with nothing else to close hides the window (S-7).
+                    cx.stop_propagation();
                 }
             }))
             // Esc leaves 批量操作 (closing its menu or confirmation first), even from the editor.
@@ -1493,7 +1509,6 @@ impl Render for Workspace {
             .children(sidebar)
             .child(note)
             .children(resize)
-            .children(crate::ui::window_controls(window))
             .children(row_menu)
             .children(doc_menu)
             .children(mode_menu)

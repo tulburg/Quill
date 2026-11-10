@@ -1,0 +1,61 @@
+{
+  "next": 4,
+  "nextNote": 1,
+  "pins": [
+    {
+      "n": 1,
+      "artboard": "ab-1",
+      "x": 160,
+      "y": 184,
+      "text": "instead of these two lines inside, make a smaller shape of the feather filled as inside the bigger shape as the line. \n\nSo only that inside and nothing else. Should look like a bigger feather, with hink inside",
+      "at": "2026-11-09T19:24:37.590Z",
+      "replies": [
+        {
+          "by": "claude",
+          "text": "Done: the spine and barb are gone; inside the outline there is now only a half-size filled feather. Redrawn here and in assets/branding (app-icon.png, menubar-icon.png and their SVG sources).",
+          "at": "2026-11-09T19:25:55.438Z"
+        }
+      ],
+      "resolved": "2026-11-09T19:25:55.438Z"
+    },
+    {
+      "n": 2,
+      "artboard": "ab-1",
+      "x": 182,
+      "y": 206,
+      "text": "it should be touching the tip",
+      "at": "2026-11-09T19:26:36.844Z",
+      "replies": [
+        {
+          "by": "claude",
+          "text": "Done: the inner feather now grows from the nib, so it touches the tip. Same change in app-icon.png and menubar-icon.png. If you meant the top tip instead, say so here.",
+          "at": "2026-11-09T19:27:14.558Z"
+        }
+      ],
+      "resolved": "2026-11-09T19:27:14.558Z"
+    },
+    {
+      "n": 3,
+      "artboard": "ab-1",
+      "x": 167,
+      "y": 227,
+      "text": "Now its too tick, make it slimmer",
+      "at": "2026-11-09T19:28:20.880Z",
+      "replies": [
+        {
+          "by": "claude",
+          "text": "Slimmer now: the inner feather is a narrow leaf from the nib to about the middle of the outline. Same in app-icon.png and menubar-icon.png.",
+          "at": "2026-11-09T19:28:43.138Z"
+        }
+      ],
+      "resolved": "2026-11-09T19:28:43.138Z"
+    }
+  ],
+  "notes": [],
+  "reviews": {
+    "": {
+      "status": "accepted",
+      "at": "2026-11-09T19:26:39.124Z"
+    }
+  }
+}

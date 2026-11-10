@@ -1,0 +1,32 @@
+{
+  "next": 311,
+  "artboards": [
+    {
+      "id": "ab-125",
+      "title": "1 Resting: main window as is, New note field on top of Home",
+      "variant": "",
+      "width": "960px",
+      "height": "620px",
+      "created": "2026-11-09T15:21:58.008Z",
+      "status": "waiting"
+    },
+    {
+      "id": "ab-196",
+      "title": "2 Mid-transition: field grows, Home content slides out the bottom",
+      "variant": "",
+      "width": "960px",
+      "height": "620px",
+      "created": "2026-11-09T15:21:58.010Z",
+      "status": "waiting"
+    },
+    {
+      "id": "ab-269",
+      "title": "3 Expanded: the new note open in the editor, as Quiet.md shows any note",
+      "variant": "",
+      "width": "960px",
+      "height": "620px",
+      "created": "2026-11-09T15:21:58.011Z",
+      "status": "waiting"
+    }
+  ]
+}

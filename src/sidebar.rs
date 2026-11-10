@@ -107,7 +107,7 @@ impl Workspace {
             .flex_none()
             .flex()
             .items_center()
-            .pl(px(theme::TRAFFIC_LIGHTS_W))
+            .pl(px(self.lights_w()))
             .pr(px(12.))
             .title_bar()
             .child(
@@ -130,8 +130,7 @@ impl Workspace {
                         cx.notify();
                     })),
             )
-            .child(div().flex_1())
-            .children(crate::settings::update_pill(cx));
+            .child(div().flex_1());
 
         // The nav is just 主页: 36px items, a blue tint when selected. Its
         // icon column (x 17) is shared with 搜索 and the doc rows.

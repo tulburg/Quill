@@ -256,10 +256,7 @@ pub fn start(window: &mut Window, cx: &mut App) {
                 cx.update(|cx| crate::app::check_save_safety(rest.trim(), cx)).unwrap();
                 continue;
             }
-            #[cfg(target_os = "macos")]
             let handled = mouse_step(ns_view, cmd, &nums(rest));
-            #[cfg(not(target_os = "macos"))]
-            let handled = false;
             if !handled {
                 let _ = handle.update(cx, |_, window, cx| run(cmd, rest, window, cx));
             }
@@ -787,14 +784,4 @@ fn start_recording(handle: AnyWindowHandle, path: &str, cx: &mut AsyncApp) -> st
     })
     .detach();
     stop
-}
-
-#[cfg(not(target_os = "macos"))]
-fn capture(_: &mut Window, _: &mut App, _: &str) -> anyhow::Result<()> {
-    anyhow::bail!("capture is only implemented on macOS")
-}
-
-#[cfg(not(target_os = "macos"))]
-fn grab(_: &Window) -> anyhow::Result<(usize, usize, Vec<u8>)> {
-    anyhow::bail!("capture is only implemented on macOS")
 }

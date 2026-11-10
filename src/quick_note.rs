@@ -15,8 +15,6 @@ struct LastDocument(Option<String>);
 impl Global for LastDocument {}
 #[cfg(target_os = "macos")]
 pub fn used(id: &str, cx: &mut App) { cx.set_global(LastDocument(Some(id.into()))); }
-#[cfg(not(target_os = "macos"))]
-pub fn used(_: &str, _: &mut App) {}
 #[cfg(target_os = "macos")]
 pub fn open_last(cx: &mut App) {
     let Some(mut store) = cx.try_global::<crate::shared_store::SharedStore>().cloned() else { return };
@@ -65,10 +63,9 @@ pub fn open_document(document: Option<String>, cx: &mut App) {
         window_bounds: Some(WindowBounds::Windowed(bounds)),
         window_background: crate::theme::window_background(),
         app_id: Some(crate::APP_ID.into()),
-        window_decorations: if cfg!(target_os = "linux") { Some(WindowDecorations::Client) } else { None },
         titlebar: Some(TitlebarOptions {
-            title: Some(crate::settings::text("Quiet.md · 快速笔记").into()),
-            appears_transparent: cfg!(any(target_os = "macos", target_os = "windows")),
+            title: Some(crate::settings::text("Quill · 快速笔记").into()),
+            appears_transparent: true,
             traffic_light_position: Some(point(px(20.), px(crate::app::HEADER_H / 2. - 7.))),
         }),
         window_min_size: Some(size(px(480.), px(480.))),
@@ -97,21 +94,45 @@ mod hotkey {
         fn RemoveEventHandler(handler: Ref) -> i32;
         fn UnregisterEventHotKey(key: Ref) -> i32;
     }
-    thread_local! { static KEY: RefCell<(Ref, String)> = const { RefCell::new((ptr::null_mut(), String::new())) }; static LAST_KEY: RefCell<Ref> = const { RefCell::new(ptr::null_mut()) }; static HELD: RefCell<[bool; 2]> = const { RefCell::new([false; 2]) }; static APP: RefCell<Option<AsyncApp>> = const { RefCell::new(None) }; }
+    thread_local! { static KEY: RefCell<(Ref, String)> = const { RefCell::new((ptr::null_mut(), String::new())) }; static LAST_KEY: RefCell<Ref> = const { RefCell::new(ptr::null_mut()) }; static HELD: RefCell<[bool; 3]> = const { RefCell::new([false; 3]) }; static MENU_KEY: RefCell<(Ref, String)> = const { RefCell::new((ptr::null_mut(), String::new())) }; static APP: RefCell<Option<AsyncApp>> = const { RefCell::new(None) }; }
     unsafe extern "C" fn pressed(_: Ref, event: Ref, _: Ref) -> i32 {
         let mut id = HotkeyId { signature: 0, id: 0 };
-        if unsafe { GetEventParameter(event, u32::from_be_bytes(*b"----"), u32::from_be_bytes(*b"hkid"), ptr::null_mut(), std::mem::size_of::<HotkeyId>(), ptr::null_mut(), &mut id as *mut _ as Ref) } != 0 || id.signature != u32::from_be_bytes(*b"FlNt") || !(1..=2).contains(&id.id) { return -9874; }
+        if unsafe { GetEventParameter(event, u32::from_be_bytes(*b"----"), u32::from_be_bytes(*b"hkid"), ptr::null_mut(), std::mem::size_of::<HotkeyId>(), ptr::null_mut(), &mut id as *mut _ as Ref) } != 0 || id.signature != u32::from_be_bytes(*b"FlNt") || !(1..=3).contains(&id.id) { return -9874; }
         let release = unsafe { GetEventKind(event) } == 6;
         let repeated = HELD.with(|held| { let mut held = held.borrow_mut(); let old = held[(id.id - 1) as usize]; held[(id.id - 1) as usize] = !release; old });
         if release || repeated { return 0; }
         APP.with(|app| {
             if let Some(cx) = app.borrow().clone() {
-                cx.foreground_executor().clone().spawn(async move { let _ = cx.update(|cx| if id.id == 2 { super::open_last(cx) } else { super::open(cx) }); }).detach();
+                cx.foreground_executor().clone().spawn(async move { let _ = cx.update(|cx| match id.id { 2 => super::open_last(cx), 3 => crate::menu_bar::toggle(cx), _ => super::open(cx) }); }).detach();
             }
         });
         0
     }
-    pub fn suspend() { HELD.with(|h| *h.borrow_mut() = [false; 2]); LAST_KEY.with(|k| { let mut k = k.borrow_mut(); if !k.is_null() { unsafe { UnregisterEventHotKey(*k); } } *k = ptr::null_mut(); }); KEY.with(|k| { let mut k = k.borrow_mut(); if !k.0.is_null() { unsafe { UnregisterEventHotKey(k.0); } } *k = (ptr::null_mut(), String::new()); }); }
+    pub fn suspend() { HELD.with(|h| *h.borrow_mut() = [false; 3]); MENU_KEY.with(|k| { let mut k = k.borrow_mut(); if !k.0.is_null() { unsafe { UnregisterEventHotKey(k.0); } } *k = (ptr::null_mut(), String::new()); }); LAST_KEY.with(|k| { let mut k = k.borrow_mut(); if !k.is_null() { unsafe { UnregisterEventHotKey(*k); } } *k = ptr::null_mut(); }); KEY.with(|k| { let mut k = k.borrow_mut(); if !k.0.is_null() { unsafe { UnregisterEventHotKey(k.0); } } *k = (ptr::null_mut(), String::new()); }); }
+    /// The Carbon handler for every Quill hotkey, installed once.
+    fn ensure_handler(cx: &mut App) -> Result<(), i32> {
+        if APP.with(|a| a.borrow().is_some()) { return Ok(()); }
+        unsafe {
+            let events = [EventType { class: u32::from_be_bytes(*b"keyb"), kind: 5 }, EventType { class: u32::from_be_bytes(*b"keyb"), kind: 6 }];
+            let mut handler = ptr::null_mut();
+            let status = InstallEventHandler(GetApplicationEventTarget(), pressed, 2, events.as_ptr(), ptr::null_mut(), &mut handler);
+            if status != 0 { return Err(status); }
+        }
+        APP.with(|app| *app.borrow_mut() = Some(cx.to_async()));
+        Ok(())
+    }
+    /// Quill's show/hide hotkey (S-7); an empty combo unregisters it.
+    pub fn install_menubar(cx: &mut App, key: Option<(u32, u32)>, combo: &str) -> Result<(), i32> {
+        if MENU_KEY.with(|k| k.borrow().1 == combo) { return Ok(()); }
+        MENU_KEY.with(|k| { let mut k = k.borrow_mut(); if !k.0.is_null() { unsafe { UnregisterEventHotKey(k.0); } } *k = (ptr::null_mut(), String::new()); });
+        let Some((code, modifiers)) = key else { return Ok(()) };
+        ensure_handler(cx)?;
+        let mut out = ptr::null_mut();
+        let status = unsafe { RegisterEventHotKey(code, modifiers, HotkeyId { signature: u32::from_be_bytes(*b"FlNt"), id: 3 }, GetApplicationEventTarget(), 0, &mut out) };
+        if status != 0 { return Err(status); }
+        MENU_KEY.with(|k| *k.borrow_mut() = (out, combo.into()));
+        Ok(())
+    }
     pub fn install(cx: &mut App, code: u32, modifiers: u32, combo: &str) -> Result<(), i32> {
         if KEY.with(|k| k.borrow().1 == combo) { return Ok(()); }
         unsafe {
@@ -173,30 +194,39 @@ pub fn persist(cx: &mut App) {
     if let Err(e) = store.save_settings(&settings) { eprintln!("无法保存窗口尺寸：{e}"); }
 }
 
-/// The main window's size: last used, or 1280 × 800.
+/// The main window's size: last used (this session, else saved), or 1280 × 800.
 pub fn main_window_size(cx: &App) -> gpui::Size<Pixels> {
-    let s = cx.global::<crate::shared_store::SharedStore>().settings().window_size.unwrap_or([1280., 800.]);
+    let s = cx.try_global::<Sizes>().and_then(|s| s.main).or_else(|| cx.global::<crate::shared_store::SharedStore>().settings().window_size).unwrap_or([1280., 800.]);
     size(px(s[0].max(480.)), px(s[1].max(480.)))
 }
 
 #[cfg(target_os = "macos")]
 pub fn set_hotkey(combo: &str, cx: &mut App) -> anyhow::Result<()> {
-    let key = Keystroke::parse(combo)?;
-    let keys = [("a",0),("s",1),("d",2),("f",3),("h",4),("g",5),("z",6),("x",7),("c",8),("v",9),("b",11),("q",12),("w",13),("e",14),("r",15),("y",16),("t",17),("1",18),("2",19),("3",20),("4",21),("6",22),("5",23),("9",25),("7",26),("8",28),("0",29),("o",31),("u",32),("i",34),("p",35),("l",37),("j",38),("k",40),("n",45),("m",46),("space",49)];
-    let code = keys.iter().find(|(k,_)| *k == key.key).map(|(_,v)| *v).ok_or_else(|| anyhow::anyhow!(crate::settings::tr("全局快捷键请使用字母、数字或空格", "Use a letter, digit or Space for the global shortcut")))?;
-    let m = key.modifiers;
-    let modifiers = (if m.platform { 1 << 8 } else { 0 }) | (if m.shift { 1 << 9 } else { 0 }) | (if m.alt { 1 << 11 } else { 0 }) | (if m.control { 1 << 12 } else { 0 });
+    let (code, modifiers) = carbon_key(combo)?;
     #[cfg(target_os = "macos")]
     let r = hotkey::install(cx, code, modifiers, combo).map_err(|e| anyhow::anyhow!("{}（{e}）", crate::settings::tr("无法注册这个组合键，可能已被系统或其他应用占用", "This shortcut is taken by macOS or another app")));
     *HOTKEY_ERROR.lock().unwrap() = r.as_ref().err().map(|e| e.to_string());
     r
 }
 
+/// Quill's show/hide hotkey from the shortcuts file (S-7, D-6: none by default).
+pub fn set_menubar_hotkey(combo: &str, cx: &mut App) -> anyhow::Result<()> {
+    let key = if combo.is_empty() { None } else { Some(carbon_key(combo)?) };
+    hotkey::install_menubar(cx, key, combo).map_err(|e| anyhow::anyhow!("{}（{e}）", crate::settings::tr("无法注册这个组合键，可能已被系统或其他应用占用", "This shortcut is taken by macOS or another app")))
+}
+pub fn register_menubar(cx: &mut App) {
+    if let Err(e) = set_menubar_hotkey(&crate::shortcuts::menubar_key(), cx) { eprintln!("菜单栏快捷键注册失败：{e}"); }
+}
+
+/// Carbon key code and modifier mask of a one-stroke combo.
+fn carbon_key(combo: &str) -> anyhow::Result<(u32, u32)> {
+    let key = Keystroke::parse(combo)?;
+    let keys = [("a",0),("s",1),("d",2),("f",3),("h",4),("g",5),("z",6),("x",7),("c",8),("v",9),("b",11),("q",12),("w",13),("e",14),("r",15),("y",16),("t",17),("1",18),("2",19),("3",20),("4",21),("6",22),("5",23),("9",25),("7",26),("8",28),("0",29),("o",31),("u",32),("i",34),("p",35),("l",37),("j",38),("k",40),("n",45),("m",46),("space",49)];
+    let code = keys.iter().find(|(k,_)| *k == key.key).map(|(_,v)| *v).ok_or_else(|| anyhow::anyhow!(crate::settings::tr("全局快捷键请使用字母、数字或空格", "Use a letter, digit or Space for the global shortcut")))?;
+    let m = key.modifiers;
+    let modifiers = (if m.platform { 1 << 8 } else { 0 }) | (if m.shift { 1 << 9 } else { 0 }) | (if m.alt { 1 << 11 } else { 0 }) | (if m.control { 1 << 12 } else { 0 });
+    Ok((code, modifiers))
+}
+
 pub fn suspend_hotkey() { #[cfg(target_os = "macos")] hotkey::suspend(); *HOTKEY_ERROR.lock().unwrap() = None; }
 
-#[cfg(not(target_os = "macos"))]
-pub fn set_hotkey(_: &str, _: &mut App) -> anyhow::Result<()> {
-    let error = crate::settings::tr("当前系统暂不支持全局快捷键", "Global shortcuts are not supported on this platform yet");
-    *HOTKEY_ERROR.lock().unwrap() = Some(error.into());
-    Err(anyhow::anyhow!(error))
-}

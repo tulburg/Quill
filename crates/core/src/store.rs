@@ -1,5 +1,5 @@
 //! On-disk library: one DocxXML file per document plus a small JSON index
-//! (pinned flag, timestamps) under `~/Documents/Quiet.md`.
+//! (pinned flag, timestamps) under `~/Documents/Quill`.
 
 use crate::docxml;
 use crate::model::Document;
@@ -361,12 +361,12 @@ pub fn read_bounded(path: &std::path::Path, limit: u64) -> Result<Vec<u8>> {
 }
 
 impl Store {
-    /// `QUIET_MD_HOME`, else a folder of
+    /// `QUILL_HOME`, else a folder of
     /// its own in the user's Documents, where they can see and back it up.
     pub fn root_dir() -> PathBuf {
-        std::env::var_os("QUIET_MD_HOME")
+        std::env::var_os("QUILL_HOME")
             .map(PathBuf::from)
-            .unwrap_or_else(|| dirs::document_dir().or_else(|| dirs::home_dir().map(|h| h.join("Documents"))).unwrap_or_else(|| PathBuf::from(".")).join("Quiet.md"))
+            .unwrap_or_else(|| dirs::document_dir().or_else(|| dirs::home_dir().map(|h| h.join("Documents"))).unwrap_or_else(|| PathBuf::from(".")).join("Quill"))
     }
 
     /// Where pasted / inserted images are copied to.
@@ -385,7 +385,7 @@ impl Store {
         let mut warnings = vec![];
         let marker = root.join("format.json");
         match std::fs::read(&marker).ok().and_then(|b| serde_json::from_slice::<FormatMarker>(&b).ok()) {
-            Some(m) if m.format > FORMAT => anyhow::bail!("这个文档库由更新版本的 Quiet.md 创建，请升级后再打开"),
+            Some(m) if m.format > FORMAT => anyhow::bail!("这个文档库由更新版本的 Quill 创建，请升级后再打开"),
             Some(_) => {}
             None => write_atomic(&marker, &serde_json::to_vec_pretty(&FormatMarker { format: BASE_FORMAT })?)?,
         }
@@ -418,7 +418,7 @@ impl Store {
         let mut hash = std::collections::hash_map::DefaultHasher::new();
         self.root.hash(&mut hash);
         dirs::data_local_dir().unwrap_or_else(std::env::temp_dir)
-            .join("quiet-md/recovery").join(format!("{:016x}", hash.finish()))
+            .join("quill/recovery").join(format!("{:016x}", hash.finish()))
     }
 
     pub fn recover_later(&self, doc: &Document) -> Result<()> {
@@ -492,7 +492,7 @@ impl Store {
         f.lock()?;
         let lock = WriteLock(f);
         let marker: FormatMarker = serde_json::from_slice(&std::fs::read(self.root.join("format.json"))?)?;
-        anyhow::ensure!(marker.format <= FORMAT, "这个文档库由更新版本的 Quiet.md 创建，请升级后再打开");
+        anyhow::ensure!(marker.format <= FORMAT, "这个文档库由更新版本的 Quill 创建，请升级后再打开");
         // An unreadable index is not judged here (that is `open`'s job): the
         // version in memory is written back unchanged.
         if let Some(index) = reread(&self.root.join("index.json")) { self.index = index; }

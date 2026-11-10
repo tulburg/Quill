@@ -1,0 +1,10 @@
+{
+  "project": "Quill",
+  "sections": [],
+  "statuses": {
+    "spec": ["draft", "discussing", "approved", "queued", "rejected", "active", "done"],
+    "question": ["open", "answered", "dropped"]
+  },
+  "userOnlyStatuses": ["approved", "queued", "rejected"],
+  "maxActiveSpecs": 1
+}

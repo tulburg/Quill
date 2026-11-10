@@ -1050,32 +1050,6 @@ mod player {
     }
 }
 
-#[cfg(not(target_os = "macos"))]
-mod player {
-    use std::path::Path;
-
-    pub struct Player;
-
-    impl Player {
-        pub fn open(_: &Path) -> Option<Self> {
-            None
-        }
-        pub fn play(&self) {}
-        pub fn pause(&self) {}
-        pub fn playing(&self) -> bool {
-            false
-        }
-        pub fn time(&self) -> f64 {
-            0.
-        }
-        pub fn seek(&self, _: f64) {}
-        pub fn duration(&self) -> f64 {
-            0.
-        }
-        pub fn set_volume(&self, _: f32) {}
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::{Kind, clock, format_size, kind_of, previewable};

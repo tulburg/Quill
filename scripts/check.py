@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Shared macOS, Windows and Linux checks; run inside the platform build environment."""
+"""macOS checks: tests, bundled guides and clippy."""
 import os
 from pathlib import Path
 import subprocess

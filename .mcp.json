@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "spill": {
+      "command": "bun",
+      "args": ["/Users/tulburg/Developer/Spill/src/cli.ts", "mcp"]
+    }
+  }
+}

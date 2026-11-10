@@ -38,8 +38,6 @@ pub struct Preferences {
     pub remote_images: bool,
     /// The system-wide quick note hotkey is registered.
     pub quick_hotkey: bool,
-    /// Look for a new version now and then (update.rs).
-    pub auto_update: bool,
     /// Light or dark look: "light", "dark", or empty to follow the system.
     pub appearance: String,
     /// The last version that opened this library (changelog.rs).
@@ -60,7 +58,7 @@ fn system_english() -> bool {
 }
 
 impl Default for Preferences {
-    fn default() -> Self { Preferences { theme: String::new(), feishu: true, english: system_english(), remote_images: true, quick_hotkey: true, auto_update: true, appearance: String::new(), seen_version: String::new(), motion: String::new() } }
+    fn default() -> Self { Preferences { theme: String::new(), feishu: true, english: system_english(), remote_images: true, quick_hotkey: true, appearance: String::new(), seen_version: String::new(), motion: String::new() } }
 }
 
 impl Preferences {
@@ -100,8 +98,6 @@ pub fn apply_appearance(pref: &str) {
         };
         let _: () = msg_send![app, setAppearance: look];
     }
-    #[cfg(not(target_os = "macos"))]
-    let _ = pref;
 }
 
 /// Draw light or dark as the preference and the system say; true when the look changed.
@@ -312,7 +308,7 @@ fn sample_page(t: &themes::Theme, s: f32) -> Div {
     let chip = |s: &'static str| div().px(sc(st.num("code.pad")).max(px(2.))).rounded(sc(st.num("code.radius"))).bg(st.color("code.bg").unwrap_or_else(|| st.token("code_chip")))
         .border_1().border_color(st.color("code.border").unwrap_or_else(|| st.token("code_chip_border"))).font_family(mono.clone()).text_color(st.color("code.color").unwrap_or(text)).child(s);
     let para = p(div().flex().flex_wrap().items_center())
-        .child(tr("Quiet.md 是一款", "Quiet.md is a "))
+        .child(tr("Quill 是一款", "Quill is a "))
         .child(div().font_weight(FontWeight(st.num("strong.weight"))).text_color(st.color("strong.color").unwrap_or(text)).child(tr("安静的本地笔记应用", "quiet, local notes app")))
         .child(tr("，", ", "))
         .child(tr("文档就是电脑上的文件。", "your notes are files. "))
@@ -337,7 +333,7 @@ fn sample_page(t: &themes::Theme, s: f32) -> Div {
         .child(p(div()).child(label).when(done, |d| d.text_color(st.color("done.color").unwrap_or_else(|| st.token("todo_done"))).when(st.flag("done.strike"), |d| d.line_through())));
     let quote = div().flex().gap(sc((st.num("quote.indent") - st.num("quote.bar")).max(4.)))
         .child(div().flex_none().w(sc(st.num("quote.bar")).max(px(1.))).rounded(px(1.)).bg(st.color("quote.bar-color").unwrap_or_else(|| st.token("quote_bar"))))
-        .child(p(div()).text_color(st.color("quote.color").unwrap_or(text)).when(st.flag("quote.italic"), |d| d.italic()).child(tr("每一篇指南都是用 Quiet.md 写成的，放心修改。", "Every guide is written in Quiet.md. Edit them freely.")));
+        .child(p(div()).text_color(st.color("quote.color").unwrap_or(text)).when(st.flag("quote.italic"), |d| d.italic()).child(tr("每一篇指南都是用 Quill 写成的，放心修改。", "Every guide is written in Quill. Edit them freely.")));
     let callout = div().px(sc(st.num("callout.pad-x"))).py(sc(st.num("callout.pad-y"))).rounded(sc(st.num("callout.radius")))
         .bg(st.named("callout", "light-yellow").unwrap_or_else(|| st.token("code_chip")))
         .when(st.num("callout.border") > 0., |d| d.border(sc(st.num("callout.border")).max(px(1.))).border_color(st.named("border", "yellow").unwrap_or_else(|| st.token("code_chip_border"))))
@@ -370,7 +366,7 @@ fn sample_page(t: &themes::Theme, s: f32) -> Div {
         .border_1().border_color(st.color("pre.border").unwrap_or_else(|| st.token("code_border")))
         .font_family(mono.clone()).text_size(sc(st.num("pre.size"))).line_height(sc(st.num("pre.line"))).text_color(st.color("pre.color").unwrap_or_else(|| st.token("code_text")))
         .child(code_line("1", vec![tok("# ", syn("comment")), tok(tr("备份文档库", "back up your documents"), syn("comment"))]))
-        .child(code_line("2", vec![tok("cd ", syn("function")), tok("~/Documents ", text), tok("&& ", syn("keyword")), tok("tar ", syn("function")), tok("-czf ", syn("attr")), tok("\"Quiet.tar.gz\" ", syn("string")), tok("Quiet.md", text)]))
+        .child(code_line("2", vec![tok("cd ", syn("function")), tok("~/Documents ", text), tok("&& ", syn("keyword")), tok("tar ", syn("function")), tok("-czf ", syn("attr")), tok("\"Quill.tar.gz\" ", syn("string")), tok("Quill", text)]))
         .child(code_line("3", vec![tok("echo ", syn("function")), tok("\"done\"", syn("string"))]));
     // One column, like a page: a centred text column (the theme's width, scaled,
     // up to 760 so a wide frame isn't mostly margin) whose bottom fades into
@@ -549,8 +545,8 @@ impl Workspace {
                 .on_click(cx.listener(move |w, _, _, cx| match page { Some(p) => w.open_settings(p, cx), None => w.show_view(View::Trash, cx) }))
         };
         div().w(px(self.sidebar_w(window))).h_full().flex_none().flex().flex_col().text_color(Theme::text()).font_family(theme::UI_FONT)
-            .child(div().h(px(crate::app::HEADER_H)).flex_none().flex().items_center().pl(px(theme::TRAFFIC_LIGHTS_W)).pr(px(12.)).title_bar().child(self.header_navigation(cx))
-                .child(div().flex_1()).children(update_pill(cx)))
+            .child(div().h(px(crate::app::HEADER_H)).flex_none().flex().items_center().pl(px(self.lights_w())).pr(px(12.)).title_bar().child(self.header_navigation(cx))
+                .child(div().flex_1()))
             // The document sidebar's rhythm: 主页 sits 8 under the bar, a section
             // header like 我的文档's, rows on a 31 pitch. 设置's line sits on
             // 主页's, not a section header's: the 34pt box keeps the rows below.
@@ -602,7 +598,7 @@ impl Workspace {
         div().flex_1().min_w_0().h_full().flex().flex_col().bg(Theme::bg_body()).text_color(Theme::text()).font_family(theme::UI_FONT)
             // The bar only drags the window; the page title heads the centred column.
             .child(div().h(px(crate::app::HEADER_H)).flex_none().flex().items_center().title_bar()
-                .when(!self.sidebar_open, |d| d.pl(px(theme::TRAFFIC_LIGHTS_W)).child(self.header_navigation(cx))))
+                .when(!self.sidebar_open, |d| d.pl(px(self.lights_w())).child(self.header_navigation(cx))))
             .child(div().id("settings-content").flex_1().min_h_0().overflow_y_scroll().track_scroll(&self.settings_scroll)
                 .child(div().w_full().flex().flex_col().items_center().px(px(32.)).pb(px(64.))
                     .child(div().w_full().max_w(px(if page == Page::Shortcuts { 760. } else { COLUMN_W })).flex().flex_col().gap(px(28.))
@@ -621,8 +617,15 @@ impl Workspace {
                     segmented("lang", &["简体中文", "English"], p.english as usize, |w, i, cx| w.set_pref(|p| p.english = i == 1, cx), cx)).into_any_element(),
                 row(tr("自动下载网络图片", "Download web images"), desc(tr("关闭后不联网，网络图片显示为占位，点击单独加载。", "When off the app stays offline; web images show a placeholder you can click to load.")),
                     switch("pref-remote", p.remote_images).on_click(cx.listener(|w, _, _, cx| w.set_pref(|p| p.remote_images = !p.remote_images, cx)))).into_any_element(),
-                row(tr("自动检查更新", "Check for updates automatically"), desc(tr("只读取一份版本信息，不发送任何数据；新版本由你决定何时下载安装。", "Reads a version file and sends nothing about you; you decide when to download and install.")),
-                    switch("pref-update", p.auto_update).on_click(cx.listener(|w, _, _, cx| w.set_pref(|p| p.auto_update = !p.auto_update, cx)))).into_any_element(),
+            ]))
+            .child(group(None, vec![
+                row(tr("登录时启动", "Launch at login"), None,
+                    switch("pref-login", crate::menu_bar::launch_at_login()).on_click(cx.listener(|w, _, _, cx| {
+                        if let Err(e) = crate::menu_bar::set_launch_at_login(!crate::menu_bar::launch_at_login()) {
+                            w.show_toast_kind(ui::ToastKind::Error, &format!("{}: {e}", tr("登录项设置失败", "Could not change the login item")), cx);
+                        }
+                        cx.notify();
+                    }))).into_any_element(),
             ]))
             .into_any_element()
     }
@@ -686,12 +689,8 @@ impl Workspace {
 
     fn library_page(&self, cx: &mut Context<Self>) -> AnyElement {
         let root = crate::store::Store::root_dir();
-        let location = if cfg!(target_os = "windows") { root.display().to_string() } else {
-            dirs::home_dir().and_then(|h| root.strip_prefix(h).ok().map(|r| format!("~/{}", r.display()))).unwrap_or_else(|| root.display().to_string())
-        };
-        let reveal = if cfg!(target_os = "macos") { tr("在访达中显示", "Show in Finder") } else if cfg!(target_os = "windows") {
-            tr("在文件资源管理器中显示", "Show in File Explorer")
-        } else { tr("在文件管理器中显示", "Show in File Manager") };
+        let location = dirs::home_dir().and_then(|h| root.strip_prefix(h).ok().map(|r| format!("~/{}", r.display()))).unwrap_or_else(|| root.display().to_string());
+        let reveal = tr("在访达中显示", "Show in Finder");
         div().w_full().flex().flex_col().gap(px(8.))
             .child(group(None, vec![
                 row(tr("文档库文件夹", "Documents folder"), Some(location.into()),
@@ -702,68 +701,14 @@ impl Workspace {
             .into_any_element()
     }
 
-    fn about_page(&self, cx: &mut Context<Self>) -> AnyElement {
+    fn about_page(&self, _cx: &mut Context<Self>) -> AnyElement {
         div().w_full().flex().flex_col().gap(px(28.)).child(div().w_full().pt(px(24.)).flex().flex_col().items_center().gap(px(10.))
             .child(img(about_icon()).size(px(88.)))
-            .child(div().text_size(px(20.)).line_height(px(26.)).font_weight(FontWeight::SEMIBOLD).child("Quiet.md"))
+            .child(div().text_size(px(20.)).line_height(px(26.)).font_weight(FontWeight::SEMIBOLD).child("Quill"))
             .child(div().text_size(px(13.)).line_height(px(18.)).text_color(Theme::text_caption()).child(format!("{} {}", tr("版本", "Version"), env!("CARGO_PKG_VERSION"))))
             .child(div().text_size(px(13.)).line_height(px(20.)).text_color(Theme::text_caption()).child(tr("本地优先的笔记应用：无需账号，文档就是你电脑上的文件。", "Local-first notes: no account, your documents are files on your Mac."))))
-            .child(group(None, vec![update_row(cx).into_any_element()]))
             .into_any_element()
     }
-}
-
-/// The sidebar bar's 更新 pill, only while a new version is on offer:
-/// 更新 downloads it (the pill then fills with its progress), 重启更新
-/// installs it. Labels stay short: the bar keeps 72pt for it at the
-/// narrowest sidebar, and a longer one ellipsizes rather than clips.
-pub(crate) fn update_pill(cx: &mut Context<Workspace>) -> Option<AnyElement> {
-    use crate::update::State;
-    let state = crate::update::state(cx);
-    let (label, tip) = match &state {
-        State::Available(m) => (tr("更新", "Update").to_string(), crate::localized_format!("下载 Quiet.md {}", "Download Quiet.md {}", m.version)),
-        State::Downloading(m) => (format!("{:.0}%", crate::update::progress(m) * 100.), crate::localized_format!("正在下载 {}…", "Downloading {}…", m.version)),
-        State::Ready(m, _) => (tr("重启更新", "Restart").to_string(), crate::localized_format!("重启后更新到 {}，打开的文档会先保存", "Restart into {}; open documents are saved first", m.version)),
-        State::Installing(m) => (tr("即将更新", "Updating").to_string(), crate::localized_format!("Quiet.md 退出后安装 {}", "{} installs when Quiet.md quits", m.version)),
-        _ => return None,
-    };
-    let fill = if let State::Downloading(m) = &state { Some(crate::update::progress(m)) } else { None };
-    let busy = matches!(state, State::Downloading(_) | State::Installing(_));
-    Some(div().id("update-pill").no_drag().flex_shrink().min_w_0().h(px(24.)).px(px(10.)).relative().overflow_hidden().flex().items_center().justify_center().rounded_full()
-        .text_size(px(12.)).line_height(px(16.)).font_weight(FontWeight::MEDIUM)
-        .when(!busy, |d| d.cursor_pointer().bg(Theme::primary()).text_color(gpui::white()).hover(|s| s.opacity(0.9)))
-        .when(busy, |d| d.bg(Theme::sidebar_hover()).text_color(Theme::text_caption()))
-        // Downloading: a fixed width (no jitter as the digits change), filled left
-        // to right behind a moving wave.
-        .when_some(fill, |d, f| d.w(px(56.)).child(ui::wave_fill(f, Theme::primary().opacity(0.18))))
-        .child(div().relative().min_w_0().truncate().child(label))
-        .tip(&tip, None)
-        .on_click(move |_, _, cx| match &state { State::Available(_) => crate::update::download(cx), State::Ready(..) => crate::update::install(cx), _ => {} })
-        .into_any_element())
-}
-
-/// 软件更新: where the updater stands and the one next step.
-fn update_row(cx: &mut Context<Workspace>) -> Div {
-    use crate::update::State;
-    let state = crate::update::state(cx);
-    let (title, detail): (SharedString, Option<SharedString>) = match &state {
-        State::Idle => (tr("软件更新", "Software update").into(), None),
-        State::Unsupported => (tr("软件更新", "Software update").into(), desc(tr("这个版本不能自动更新，请从网站下载新版本。", "This copy cannot update itself. Download new versions from the website."))),
-        State::Checking => (tr("正在检查更新…", "Checking for updates…").into(), None),
-        State::Current => (tr("已是最新版本", "Quiet.md is up to date").into(), None),
-        State::Available(m) => (crate::localized_format!("新版本 {} 可用", "Version {} is available", m.version).into(), None),
-        State::Downloading(m) => (crate::localized_format!("正在下载 {}… {:.0}%", "Downloading {}… {:.0}%", m.version, crate::update::progress(m) * 100.).into(), None),
-        State::Ready(m, _) => (crate::localized_format!("{} 已准备好", "{} is ready to install", m.version).into(), desc(tr("重启后完成更新，打开的文档会先保存。", "Quiet.md restarts to finish; open documents are saved first."))),
-        State::Installing(m) => (crate::localized_format!("{} 将在退出后安装", "{} installs when Quiet.md quits", m.version).into(), None),
-        State::Failed(e) => (tr("更新失败", "Update failed").into(), Some(e.clone().into())),
-    };
-    let control = match &state {
-        State::Checking | State::Downloading(_) | State::Installing(_) => None,
-        State::Available(_) => Some(button("update-download", tr("下载更新", "Download")).on_click(|_, _, cx| crate::update::download(cx))),
-        State::Ready(..) => Some(button("update-install", tr("重启以更新", "Restart to Update")).on_click(|_, _, cx| crate::update::install(cx))),
-        _ => Some(button("update-check", tr("检查更新", "Check Now")).on_click(|_, _, cx| crate::update::check(true, cx))),
-    };
-    row(title, detail, div().children(control))
 }
 
 /// The app icon resampled once to 176px, its size at 88pt on a 2x screen.
@@ -1043,7 +988,7 @@ pub(crate) fn localize(text: &str, english: bool) -> &str {
         "重试" => "Retry",
         "不再提示" => "Do not ask again",
         "放弃修改" => "Discard changes",
-        "Quiet.md · 快速笔记" => "Quiet.md · Quick note",
+        "Quill · 快速笔记" => "Quill · Quick note",
         "没有匹配结果，换个关键词试试吧" => "No results. Try another search term.",
         "本文被以下文档所引用" => "Referenced by these documents",
         "隐藏引用列表" => "Hide references",
@@ -1227,7 +1172,7 @@ pub(crate) fn localize(text: &str, english: bool) -> &str {
         "刚刚" => "just now",
         "文档不存在" => "Document not found",
         "文档已被另一个实例修改，未覆盖磁盘内容。请另存副本或重新载入磁盘版本" => "Another instance modified this document. The file was not overwritten. Save a copy or reload the version on disk.",
-        "这个文档库由更新版本的 Quiet.md 创建，部分内容可能无法正确显示，请升级后再编辑" => "These documents were created by a newer version of Quiet.md. Update the app before editing them.",
+        "这个文档库由更新版本的 Quill 创建，部分内容可能无法正确显示，请升级后再编辑" => "These documents were created by a newer version of Quill. Update the app before editing them.",
         _ => text,
     }
 }

@@ -109,10 +109,7 @@ pub fn shadow_s4_down() -> Vec<BoxShadow> {
 }
 
 pub const UI_FONT: &str = crate::theme::UI_FONT;
-#[cfg(not(target_os = "linux"))]
 pub const MONO_FONT: &str = "Menlo";
-#[cfg(target_os = "linux")]
-pub const MONO_FONT: &str = crate::theme::MONO_FONT;
 
 pub struct Theme;
 

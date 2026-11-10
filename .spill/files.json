@@ -1,0 +1,226 @@
+{
+  "S-5": [
+    {
+      "path": "CLAUDE.md",
+      "change": "new"
+    },
+    {
+      "path": "README.md",
+      "change": "new"
+    },
+    {
+      "path": ".mcp.json",
+      "change": "new"
+    },
+    {
+      "path": ".spill/config.json",
+      "change": "new"
+    },
+    {
+      "path": ".spill/SPILL.md",
+      "change": "new"
+    },
+    {
+      "path": "docs/upstream/CLAUDE.md",
+      "change": "changed"
+    },
+    {
+      "path": "docs/upstream/README.md",
+      "change": "changed"
+    },
+    {
+      "path": "AGENTS.md",
+      "change": "removed"
+    }
+  ],
+  "S-8": [
+    {
+      "path": "src/new_entry.rs",
+      "change": "changed"
+    },
+    {
+      "path": "src/app.rs",
+      "change": "changed"
+    },
+    {
+      "path": "src/home.rs",
+      "change": "changed"
+    },
+    {
+      "path": "src/theme.rs",
+      "change": "changed"
+    },
+    {
+      "path": "src/main.rs",
+      "change": "changed"
+    }
+  ],
+  "S-6": [
+    {
+      "path": "assets/icons/*.svg (63 files)",
+      "change": "changed"
+    },
+    {
+      "path": "assets/icons/expand.svg",
+      "change": "removed"
+    },
+    {
+      "path": "assets/icons/LICENSE-nucleo",
+      "change": "removed"
+    },
+    {
+      "path": "assets/icons/LICENSE-lucide",
+      "change": "new"
+    },
+    {
+      "path": "THIRD_PARTY.md",
+      "change": "changed"
+    },
+    {
+      "path": "assets/branding/app-icon.svg",
+      "change": "new"
+    },
+    {
+      "path": "assets/branding/app-icon.png",
+      "change": "changed"
+    },
+    {
+      "path": "assets/branding/menubar-icon.svg",
+      "change": "new"
+    },
+    {
+      "path": "assets/branding/menubar-icon.png",
+      "change": "new"
+    },
+    {
+      "path": "assets/branding/app-icon.ico, hamster-source.png, quiet-q/",
+      "change": "removed"
+    },
+    {
+      "path": "shared-mock/guides/cheatsheet.swift",
+      "change": "new"
+    },
+    {
+      "path": "shared-mock/guides/assets/quill-cheatsheet.pdf",
+      "change": "changed"
+    },
+    {
+      "path": "shared-mock/library/assets/guides/quill-cheatsheet.pdf",
+      "change": "changed"
+    }
+  ],
+  "S-7": [
+    {
+      "path": "src/menu_bar.rs",
+      "change": "new"
+    },
+    {
+      "path": "src/main.rs",
+      "change": "changed"
+    },
+    {
+      "path": "src/app.rs",
+      "change": "changed"
+    },
+    {
+      "path": "src/settings.rs",
+      "change": "changed"
+    },
+    {
+      "path": "src/shortcuts.rs",
+      "change": "changed"
+    },
+    {
+      "path": "src/quick_note.rs",
+      "change": "changed"
+    },
+    {
+      "path": "src/new_entry.rs",
+      "change": "changed"
+    }
+  ],
+  "S-10": [
+    {
+      "path": "src/menu_bar.rs",
+      "change": "changed"
+    },
+    {
+      "path": "src/main.rs",
+      "change": "changed"
+    },
+    {
+      "path": "src/app.rs",
+      "change": "changed"
+    },
+    {
+      "path": "src/settings.rs",
+      "change": "changed"
+    },
+    {
+      "path": "src/quick_note.rs",
+      "change": "changed"
+    },
+    {
+      "path": "src/sidebar.rs",
+      "change": "changed"
+    },
+    {
+      "path": "src/trash.rs",
+      "change": "changed"
+    },
+    {
+      "path": "vendor/gpui/src/platform/mac/platform.rs",
+      "change": "changed"
+    }
+  ],
+  "S-9": [
+    {
+      "path": "docs/FORMAT.md",
+      "change": "changed"
+    },
+    {
+      "path": "docs/ARCHITECTURE.md",
+      "change": "changed"
+    },
+    {
+      "path": "docs/THEMES.md",
+      "change": "changed"
+    },
+    {
+      "path": "docs/PERFORMANCE.md",
+      "change": "changed"
+    },
+    {
+      "path": "README.md",
+      "change": "changed"
+    },
+    {
+      "path": "src/app.rs",
+      "change": "changed"
+    },
+    {
+      "path": "src/local_files.rs",
+      "change": "changed"
+    },
+    {
+      "path": "src/logging.rs",
+      "change": "changed"
+    },
+    {
+      "path": "src/changelog.rs",
+      "change": "changed"
+    },
+    {
+      "path": "Cargo.toml",
+      "change": "changed"
+    },
+    {
+      "path": "crates/core/Cargo.toml",
+      "change": "changed"
+    },
+    {
+      "path": "Cargo.lock",
+      "change": "changed"
+    }
+  ]
+}

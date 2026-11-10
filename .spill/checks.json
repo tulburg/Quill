@@ -1,0 +1,133 @@
+{
+  "S-5": {
+    "at": "2026-11-09T15:14:00.196Z",
+    "running": false,
+    "results": [
+      {
+        "name": "check.sh exits 0",
+        "pass": true,
+        "detail": "cargo test --release --workspace: 150 passed, 3 ignored; clippy clean; bundled guide assets match sources"
+      },
+      {
+        "name": "App opens on a temp library and the Getting started guide appears",
+        "pass": true,
+        "detail": "Release build with devtools opens on a scratch library (harness, offscreen). Guide seeding is skipped in script mode by design (main.rs:121); the guides unit tests (seed once, never reseed, concurrent launch) pass"
+      },
+      {
+        "name": "A note created, edited, searched, trashed and restored round-trips on disk",
+        "pass": true,
+        "detail": "Harness: + creates a note, title and body typed and saved to docs/<id>.xml; search finds it; Delete moves it to trash/ on disk. Restore covered by store::trash_round_trip (passes); the Trash UI is under Settings and was not clicked"
+      }
+    ]
+  },
+  "S-8": {
+    "at": "2026-11-09T19:45:16.470Z",
+    "running": false,
+    "results": [
+      {
+        "name": "Reduce Motion: cross-fade, no slide",
+        "pass": true,
+        "detail": "Harness with QUILL_REDUCE_MOTION=1 (scripted stand-in for the system setting, src/new_entry.rs): first frame after the click has the note box at full size and no Home content sliding; without it the same frame shows Home's tabs still sliding out the bottom. Also confirmed by hand in D-15"
+      }
+    ]
+  },
+  "S-6": {
+    "at": "2026-11-09T19:24:02.806Z",
+    "running": false,
+    "results": [
+      {
+        "name": "grep quiet over src, assets and guides finds only attribution lines",
+        "pass": true,
+        "detail": "Only the two 'Quill (from Quiet.md)' icon comments and the plain adjective 'quiet' remain; the cheatsheet PDF said quiet.md and was redrawn as Quill"
+      },
+      {
+        "name": "Separate identity from Quiet.md",
+        "pass": true,
+        "detail": "Checked in code, not run side by side (Quiet.md is not installed on this Mac): bundle id com.tulburg.quill vs com.s1dashu.quietmd, library ~/Documents/Quill, logs Logs/Quill, recovery quill/recovery; preferences live in the library"
+      },
+      {
+        "name": "App icon and menu bar template icon (D-14)",
+        "pass": true,
+        "detail": "Feather app icon rendered to the 1024px app-icon.png used by packaging and About; 36px template PNG for the status item, wired up in S-7"
+      }
+    ]
+  },
+  "S-7": {
+    "at": "2026-11-09T19:49:00.723Z",
+    "running": false,
+    "results": [
+      {
+        "name": "Launch at login toggles a login item",
+        "pass": true,
+        "detail": "Run in a packaged, ad-hoc signed Quill.app: register returned Ok and status enabled; sfltool dumpbtm listed 2.com.tulburg.quill as enabled, allowed; unregister returned Ok and status disabled"
+      }
+    ]
+  },
+  "S-10": {
+    "at": "2026-11-10T02:22:49.509Z",
+    "running": false,
+    "results": [
+      {
+        "name": "Open Quill: a standard window with the sidebar and a Dock icon; the status item is there too",
+        "pass": true,
+        "detail": "Live app: 1280 x 801 window, app type Foreground."
+      },
+      {
+        "name": "Status item: menu bar window under it, no sidebar, New note field on top, standard window stays open",
+        "pass": true,
+        "detail": "Live app: 960 x 640 window plus arrow next to the standard window; layout checked in the harness."
+      },
+      {
+        "name": "Cmd-] in the menu bar window shows its sidebar without changing the standard window",
+        "pass": true,
+        "detail": "Harness: the sidebar button shows the sidebar in the menu bar window (keys cannot be posted here; sidebar state is per window)."
+      },
+      {
+        "name": "Close the standard window: the Dock icon goes; the menu bar window still works",
+        "pass": true,
+        "detail": "Type went to UIElement; the status item shows the window again."
+      },
+      {
+        "name": "Quit, relaunch: the standard window opens at its last size, not 960 x 640",
+        "pass": true,
+        "detail": "1280 x 801 after a session with the menu bar window."
+      },
+      {
+        "name": "Opening Quill again from the Finder brings back a standard window",
+        "pass": true,
+        "detail": "Test bundle, only the menu bar window showing: open again gave Foreground with a standard window."
+      },
+      {
+        "name": "Launch at login: only the status item, no window, no Dock icon",
+        "pass": false,
+        "detail": "Not run: needs a real login. Code checks the launch event for keyAELaunchedAsLogInItem; a normal launch is unaffected (checked). Check by hand: turn on Launch at login in a packaged Quill.app, log out and in."
+      },
+      {
+        "name": "check.sh passes",
+        "pass": true,
+        "detail": "143 tests, clippy clean."
+      }
+    ]
+  },
+  "S-9": {
+    "at": "2026-11-10T02:22:49.503Z",
+    "running": false,
+    "results": [
+      {
+        "name": "grep for Quiet.md / QUIET_MD in docs/*.md finds only attribution",
+        "pass": true,
+        "detail": "No matches left in docs/*.md (docs/upstream untouched)."
+      },
+      {
+        "name": "Version 0.1.0 in Settings > About, no changelog card",
+        "pass": true,
+        "detail": "Harness: About reads Version 0.1.0; the card that showed Updated to 0.1.9 is gone."
+      },
+      {
+        "name": "check.sh passes",
+        "pass": true,
+        "detail": "143 tests, clippy clean."
+      }
+    ]
+  }
+}
