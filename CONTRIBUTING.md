@@ -4,7 +4,7 @@ Code style and commit conventions are in [AGENTS.md](AGENTS.md) (the same as CLA
 
 ## Building from source
 
-macOS needs the Xcode Command Line Tools; Windows needs the Visual Studio 2022 C++ Build Tools and the Windows SDK. The Rust version is pinned in `rust-toolchain.toml`, and rustup picks it up automatically.
+macOS needs the Xcode Command Line Tools and the Metal toolchain (`xcodebuild -downloadComponent MetalToolchain`). The Rust version is pinned in `rust-toolchain.toml`, and rustup picks it up automatically.
 
 ```sh
 cargo build --release --locked
